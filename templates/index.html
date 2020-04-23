@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang='en'>
+  <head>
+    <meta charset='utf-8'>
+    <meta content='width=device-width, initial-scale=1' name='viewport'>
+    <link rel="stylesheet" media="all" href="static/main.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+
+    <title>Raspberry Pi Robot Control Panel</title>
+  </head>
+
+  <body onload="init();">
+
+  <div class="container bg-primary">
+    <center>
+      <h1>Raspberry Pi Robot Control Panel</h1>
+    </center>
+  </div>
+
+  <br>
+
+  <div class="container">
+    <center>
+      <a href="/halt" onClick="return shutdown()" class="btn btn-danger" role="button">Shutdown...</a>
+    </center>
+  </div>
+
+  <br>
+
+  <div class="container">
+    <center>
+    <div class="row">
+      <table>
+        <tr><th>LEDs <span>&#160;</span></th>
+        <td class="center"><input type="checkbox" id="led0" onchange="setLeds()"><span>&#160;</span></td>
+        <td class="center"><input type="checkbox" id="led1" onchange="setLeds()"><span>&#160;</span></td>
+        <td class="center"><input type="checkbox" id="led2" onchange="setLeds()"></td>
+        </tr>
+      </table>
+    </div>
+  </center>
+  </div>
+
+  <br>
+
+  <div class="container">
+    <center>
+      <table>
+        <tr><th>Battery<span>&#160;</span></th><td class="wide"><span id="battery_millivolts"></span> mV</td></tr>
+      </table>
+    </center>
+  </div>
+
+  <br>
+
+  <div class="container">
+    <center>
+      <p>
+        <input type="text" id="notes" maxlength="14" value="l16ceg>c">
+        <button onclick="playNotes()">Play</button>
+        </p>
+    </center>
+  </div>
+
+  <hr>
+
+  <div class="container">
+    <div class="row">
+       <div class="col-sm-3"></div>
+       <div class="col-sm-6">
+          <input type="text" class="form-control" id="xInput" placeholder="X Length">
+       </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-3"></div>
+      <div class="col-sm-6">
+         <input type="text" class="form-control" id="yInput" placeholder="Y Length">
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-3"></div>
+      <div class="col-sm-6">
+         <input type="text" class="form-control" id="wInput" placeholder="Width">
+      </div>
+    </div>
+    <br>
+    <div class="row">
+      <div class="col-sm-3"></div>
+      <div class="col-sm-6">
+        <button class="btn btn-primary" role="button">Detect Field</button>
+      </div>
+   </div>
+ </div>
+
+ <hr>
+
+  <div class="container">
+    <div class="row">
+      <div class="panel panel-default">
+        <div class="panel-body">
+          <center>
+          <p id="fieldDrawing"></p>
+        </center>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="row">
+      <div class="panel panel-default">
+        <div class="panel-body">
+          <center>
+          <p id="jobStatus"></p>
+        </center>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <center>
+      <button onClick="runJob()" class="btn btn-primary" role="button">Run</button>
+      <button onClick="stopJob()" class="btn btn-warning" role="button">Stop</button>
+    </center>
+  </div>
+
+  <br>
+
+  <footer class="footer">
+    <div class="container bg-info">
+      <center>
+        Created by <a href="mailto:agurgen@princeton.edu">Ali Ekin Gurgen</a> and 
+        <a href="mailto:mlh4@princeton.edu">Michaela Hennebury</a> for ELE 302: Robotic and Autonomous Systems Lab
+      </center>
+    </div>
+  </footer>
+
+  <script>
+    function setup()
+    {
+      $('#xInput').focus();
+      $('#xInput').on('input', drawField);
+      $('#yInput').on('input', drawField);
+      $('#wInput').on('input', drawField);
+    }
+
+    function handleField(response)
+    {
+      if (response == "")
+          $('#fieldDrawing').html("");
+      else
+          $('#fieldDrawing').html(response);
+    }
+
+    let request = null;
+         
+    function drawField()
+    {    
+      let x = $('#xInput').val();
+      let y = $('#yInput').val();
+      let w = $('#wInput').val();
+      x = encodeURIComponent(x);
+      y = encodeURIComponent(y);
+      w = encodeURIComponent(w);
+      let url = '/drawfield?x=' + x + '&y=' + y + '&w=' + w;
+      if (request != null)
+          request.abort();
+      request = $.ajax(
+          {
+            type: "GET",
+            url: url,
+            success: handleField
+          }
+      );
+    }
+
+    function handleJobSuccess(response)
+    {
+      $('#jobStatus').html(response);
+    }
+
+    function runJob()
+    {
+      $('#jobStatus').html("Running");
+      let x = $('#xInput').val();
+      let y = $('#yInput').val();
+      let w = $('#wInput').val();
+      x = encodeURIComponent(x);
+      y = encodeURIComponent(y);
+      w = encodeURIComponent(w);
+      let url = '/running?x=' + x + '&y=' + y + '&w=' + w;
+      if (request != null)
+          request.abort();
+      request = $.ajax(
+          {
+            type: "GET",
+            url: url,
+            success: handleJobSuccess
+          }
+      );
+    }
+
+    function stopJob()
+    {
+      let x = -1
+      let y = -1
+      let w = -1
+      x = encodeURIComponent(x);
+      y = encodeURIComponent(y);
+      w = encodeURIComponent(w);
+      let url = '/running?x=' + x + '&y=' + y + '&w=' + w;
+      if (request != null)
+          request.abort();
+      request = $.ajax(
+          {
+            type: "GET",
+            url: url,
+            success: handleJobSuccess
+          }
+      );
+    }
+
+    function updateField() 
+    {    
+      let x = $('#xInput').val();
+      let y = $('#yInput').val();
+      let w = $('#wInput').val();
+
+      if (x == null || y == null || w == null) {
+          return
+      }
+
+      else 
+      {
+          x = encodeURIComponent(x);
+          y = encodeURIComponent(y);
+          w = encodeURIComponent(w);
+          let url = '/drawfield?x=' + x + '&y=' + y + '&w=' + w;
+          if (request != null)
+              request.abort();
+          request = $.ajax(
+              {
+                type: "GET",
+                url: url,
+                success: handleField
+              }
+          );
+      }
+    }
+    
+    $('document').ready(setup);
+    setInterval(updateField, 2000);
+  </script>
+
+</div>
+</html>
+
+

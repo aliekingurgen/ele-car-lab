@@ -1,0 +1,7 @@
+{
+    "lWheel": 50,
+    "rWheel": 44,
+    "turnLeftTime": 3,
+    "turnRightTime": 3.6,
+    "convFactor": 0.14
+}
