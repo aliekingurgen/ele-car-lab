@@ -5,7 +5,6 @@ from flask import Flask, make_response, request
 from flask import render_template
 from flask import redirect
 from subprocess import call
-from planner import calculatePath
 import time
 import argparse
 app = Flask(__name__)

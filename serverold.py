@@ -14,19 +14,15 @@ app.debug = True
 from a_star import AStar
 a_star = AStar()
 path = []
+
 import json
 
-import pixy 
-from ctypes import *
-from pixy import *
 
 led0_state = False
 led1_state = False
 led2_state = False
 
 currentLineCount = -1
-
-# ---------------------------------------------------------------------------------
 
 # Get the configurations 
 parser = argparse.ArgumentParser(description='201_indep_project')
@@ -41,34 +37,12 @@ turnLeftTime = args['turnLeftTime']
 turnRightTime = args['turnRightTime']
 convFactor = args['convFactor']
 
-# ---------------------------------------------------------------------------------
-
-pixy.init ()
-pixy.change_prog ("color_connected_components")
-
-class Blocks (Structure):
-  _fields_ = [ ("m_signature", c_uint),
-    ("m_x", c_uint),
-    ("m_y", c_uint),
-    ("m_width", c_uint),
-    ("m_height", c_uint),
-    ("m_angle", c_uint),
-    ("m_index", c_uint),
-    ("m_age", c_uint) ]
-
-blocks = BlockArray(100)
-pixy.set_lamp(0, 0)
-
-# ---------------------------------------------------------------------------------
-
 @app.route("/", methods=['GET'])
 @app.route("/index", methods=['GET'])
 def hello():
     html = render_template("index.html")
     response = make_response(html)
     return response
-
-# ---------------------------------------------------------------------------------
 
 @app.route("/running", methods=['GET'])
 def running():
@@ -85,8 +59,6 @@ def running():
     else:
         runPath(xlength, ylength, width)
         return "Success"
-
-# ---------------------------------------------------------------------------------
 
 @app.route("/drawfield", methods=['GET'])
 def drawField():
@@ -122,25 +94,6 @@ def drawField():
 
 # ---------------------------------------------------------------------------------
 
-@app.route("/detectfield", methods=['GET'])
-def detectField():
-
-    x1_time = forwardForDetection()
-    turnLeft()
-    y1_time = forwardForDetection()
-    turnLeft()
-    x2_time = forwardForDetection()
-    turnLeft()
-    y2_time = forwardForDetection()
-
-    x = x1_time/convFactor
-    y = y1_time/convFactor
-    
-    return "X: " + str(x) + " "  + "Y: " + str(y)
-
-# ---------------------------------------------------------------------------------
-# ---------------------------------------------------------------------------------
-
 
 def piControl(error, accError, lr):
     if (lr == 0):
@@ -160,7 +113,9 @@ def piControl(error, accError, lr):
     return result
 
 def forward(t):
-    a_star.motors(70, 70)
+    a_star.motors(50, 50)
+    leftCount = 0
+    rightCount = 0
     leftAcc = 0
     rightAcc = 0
     countAcc = 0
@@ -177,75 +132,35 @@ def forward(t):
 
             if (righten > 0):
                 rightError = 35 - righten
+                rightCount += righten
             if (leften > 0):
                 leftError = 35 - leften
-            print (str(leftError) + " " + str(rightError))
+                leftCount += leften
+            print (str(leftCount) + " " + str(rightCount))
 
             if (countAcc > 5):
                 leftAcc += leftError
                 rightAcc += rightError
 
-            # calculate new motor parameters and apply to motor
             left = piControl(leftError, leftAcc, 0)
             right = piControl(rightError, rightAcc, 1)
-            a_star.motors(left, right)
+            
+            # angle correction and motor control
+            if (leftCount - rightCount > 10):
+                a_star.motors(left, right + 60)
+                print ("adjusting right")
+            if (rightCount - leftCount > 10):
+                a_star.motors(left + 60, right)
+                print ("adjusting left")
+            else:
+                a_star.motors(left, right)
 
             # reset time 2 /encoders
             time2 = time.perf_counter()
             encoders1 = encoders2
             countAcc += 1
     stop(1)
-    
 
-def forwardForDetection():
-    a_star.motors(70, 70)
-    leftAcc = 0
-    rightAcc = 0
-    countAcc = 0
-    startTime = time.perf_counter()
-    encoders1 = a_star.read_encoders()
-    print (encoders1)
-    time2 = time.perf_counter()
-    while 1:
-        if ((time.perf_counter() - time2) > 0.05): # look at encoder values every second
-            encoders2 = a_star.read_encoders()
-            # goal: 313 counts/second
-            righten = encoders2[1] - encoders1[1]
-            leften = encoders2[0] - encoders1[0]
-
-            if (righten > 0):
-                rightError = 35 - righten
-            if (leften > 0):
-                leftError = 36 - leften
-            print (str(leftError) + " " + str(rightError))
-
-            if (countAcc > 5):
-                leftAcc += leftError
-                rightAcc += rightError
-
-            # calculate new motor parameters and apply to motor
-            left = piControl(leftError, leftAcc, 0)
-            right = piControl(rightError, rightAcc, 1)
-            a_star.motors(left, right)
-
-            # reset time 2 /encoders
-            time2 = time.perf_counter()
-            encoders1 = encoders2
-            countAcc += 1
-
-            # look at the camera input
-            count = pixy.ccc_get_blocks (100, blocks)
-            if (count > 0):
-                # make sure block is large enough to be relevant
-                if (blocks[0].m_width > 50 and blocks[0].m_height > 50):
-                    a_star.motors(0, 0) # stops if a block is detected
-                    pixy.set_lamp(1, 1) # turns on lamp if a block is detected
-                    pixy.set_lamp(0, 0)
-                    print("detected a corner")
-                    break
-    endTime = time.perf_counter()
-    stop(2)
-    return (endTime - startTime)
 
 def stop(t):
     a_star.motors(0, 0)
@@ -297,12 +212,12 @@ def runPath (x, y, w):
         forward(timePlant)
         if leftOrRight:
             turnRight()
-            forward(1)
+            forward(3)
             turnRight()
             leftOrRight = False
         else:
             turnLeft()
-            forward(1)
+            forward(3)
             turnLeft()
             leftOrRight = True
         count += 1
