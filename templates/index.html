@@ -67,6 +67,15 @@
 
   <div class="container">
     <div class="row">
+      <div class="col-sm-3"></div>
+      <div class="col-sm-6">
+        <center>
+          <button onClick="detectField()" class="btn btn-primary" role="button">Detect Field</button>
+      </center>
+      </div>
+   </div>
+   <br>
+    <div class="row">
        <div class="col-sm-3"></div>
        <div class="col-sm-6">
           <input type="text" class="form-control" id="xInput" placeholder="X Length">
@@ -84,13 +93,6 @@
          <input type="text" class="form-control" id="wInput" placeholder="Width">
       </div>
     </div>
-    <br>
-    <div class="row">
-      <div class="col-sm-3"></div>
-      <div class="col-sm-6">
-        <button class="btn btn-primary" role="button">Detect Field</button>
-      </div>
-   </div>
  </div>
 
  <hr>
@@ -248,6 +250,26 @@
               }
           );
       }
+    }
+
+    function handleDetection(response)
+    {
+      $('#jobStatus').html(response);
+
+    }
+
+    function detectField()
+    {
+      let url = '/detectfield'
+      if (request != null)
+          request.abort();
+      request = $.ajax(
+          {
+            type: "GET",
+            url: url,
+            success: handleDetection
+          }
+      );
     }
     
     $('document').ready(setup);
