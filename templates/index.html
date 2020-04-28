@@ -224,6 +224,7 @@
       );
     }
 
+  
     function updateField() 
     {    
       let x = $('#xInput').val();
@@ -254,26 +255,43 @@
 
     function handleDetection(response)
     {
+      console.log(response);
       $('#jobStatus').html(response);
 
     }
 
     function detectField()
     {
-      let url = '/detectfield'
+      clearInterval(field);
+    
+      $('#jobStatus').html("Detecting");
+      let url = '/detectfield';
       if (request != null)
           request.abort();
       request = $.ajax(
           {
             type: "GET",
             url: url,
-            success: handleDetection
+            success: function(data) {
+              console.log("hello2");
+              values = data.split(" ")
+              $('#jobStatus').html("finished detection, please input width and select run");
+              $('#xInput').val(values[0]);
+              $('#yInput').val(values[1]);
+              field = setInterval(updateField, 2000);
+            },
+            error: function(xhr, status, error){
+              console.log("hello3");
+              var errorMessage = xhr.status + ': ' + xhr.statusText
+              alert('Error - ' + errorMessage);
+            }
           }
       );
     }
+    console.log("hello");
     
     $('document').ready(setup);
-    setInterval(updateField, 2000);
+    field = setInterval(updateField, 2000);
   </script>
 
 </div>

@@ -127,19 +127,22 @@ def detectField():
     turnLeft()
     y1_count = forwardForDetection()
     turnLeft()
-    x2_count = forwardForDetection()
+    forward(x1_count)
     turnLeft()
-    y2_count = forwardForDetection()
+    forward(y1_count)
+    turnLeft()
 
     #x = x1_time/convFactor
     #y = y1_time/convFactor
     # convert counts to cm (22cm/)
-    x = x1_count/countToCM
-    y = y1_count/countToCM
+    print (x1_count)
+    print (y1_count)
+    x = int(x1_count/countToCM)
+    y = int(y1_count/countToCM)
 
     print("X: " + str(x) + " "  + "Y: " + str(y))
     
-    return "X: " + str(x) + " "  + "Y: " + str(y)
+    return str(x) + " " + str(y)
 
 # ---------------------------------------------------------------------------------
 
@@ -167,7 +170,6 @@ def forward(eCount):
     leftAcc = 0
     rightAcc = 0
     countAcc = 0
-    startTime = time.perf_counter()
     encoders1 = a_star.read_encoders()
     print (encoders1)
     time2 = time.perf_counter()
@@ -207,7 +209,78 @@ def forward(eCount):
             time2 = time.perf_counter()
             encoders1 = encoders2
             countAcc += 1
+
+        # look at the camera input
+        count = pixy.ccc_get_blocks (100, blocks)
+        if (count > 0):
+            # make sure block is large enough to be relevant
+            if (blocks[0].m_width > 50 and blocks[0].m_height > 50):
+                a_star.motors(0, 0) # stops if a block is detected
+                pixy.set_lamp(1, 1) # turns on lamp if a block is detected
+                pixy.set_lamp(0, 0)
+                print("detected an obstacle")
+                avoidObstacle()
+                leftCount += int(10*countToCM)
+                rightCount += int(10*countToCM)               
     stop(1)
+
+def avoidObstacle():
+    turnRight()
+    forwardObstacle(int(5*countToCM))
+    turnLeft()
+    forwardObstacle(int(10*countToCM))
+    turnLeft()
+    forwardObstacle(int(5*countToCM))
+    turnRight()
+
+def forwardObstacle(eCount):
+    a_star.motors(50, 50)
+    leftCount = 0 # use left count to determine when to stop
+    rightCount = 0
+    leftAcc = 0
+    rightAcc = 0
+    countAcc = 0
+    encoders1 = a_star.read_encoders()
+    print (encoders1)
+    time2 = time.perf_counter()
+    while (leftCount < eCount): # left encoder count is less than goal count
+        if ((time.perf_counter() - time2) > 0.05): # look at encoder values every second
+            encoders2 = a_star.read_encoders()
+            # goal: 313 counts/second
+            righten = encoders2[1] - encoders1[1]
+            leften = encoders2[0] - encoders1[0]
+
+            if (righten > 0):
+                rightError = 35 - righten
+                rightCount += righten
+            if (leften > 0):
+                leftError = 35 - leften
+                leftCount += leften
+            print (str(leftCount) + " " + str(rightCount))
+
+            if (countAcc > 5):
+                leftAcc += leftError
+                rightAcc += rightError
+
+            left = piControl(leftError, leftAcc, 0)
+            right = piControl(rightError, rightAcc, 1)
+            
+            # angle correction and motor control
+            if (leftCount - rightCount > 10):
+                a_star.motors(left, right + 40)
+                print ("adjusting right")
+            if (rightCount - leftCount > 10):
+                a_star.motors(left + 40, right)
+                print ("adjusting left")
+            else:
+                a_star.motors(left, right)
+
+            # reset time 2 /encoders
+            time2 = time.perf_counter()
+            encoders1 = encoders2
+            countAcc += 1             
+    stop(1)
+
 
 def forwardForDetection():
     #initialize camera and block array
@@ -235,9 +308,11 @@ def forwardForDetection():
             leften = encoders2[0] - encoders1[0]
 
             if (righten > 0):
-                rightError = 36 - righten
+                rightError = 35 - righten
+                rightCount += righten
             if (leften > 0):
-                leftError = 36 - leften
+                leftError = 35 - leften
+                leftCount += leften
 
             if (countAcc > 5):
                 leftAcc += leftError
@@ -260,18 +335,16 @@ def forwardForDetection():
             encoders1 = encoders2
             countAcc += 1
 
-            # look at the camera input
-            count = pixy.ccc_get_blocks (100, blocks)
-            if (count > 0):
-                # make sure block is large enough to be relevant
-                if (blocks[0].m_width > 50 and blocks[0].m_height > 50):
-                    a_star.motors(0, 0) # stops if a block is detected
-                    pixy.set_lamp(1, 1) # turns on lamp if a block is detected
-                    pixy.set_lamp(0, 0)
-                    print("detected a corner")
-                    break
-    endTime = time.perf_counter()
-    print(str(endTime))
+        # look at the camera input
+        count = pixy.ccc_get_blocks (100, blocks)
+        if (count > 0):
+            # make sure block is large enough to be relevant
+            if (blocks[0].m_width > 50 and blocks[0].m_height > 50):
+                a_star.motors(0, 0) # stops if a block is detected
+                pixy.set_lamp(1, 1) # turns on lamp if a block is detected
+                pixy.set_lamp(0, 0)
+                print("detected a corner")
+                break
     stop(2)
     return leftCount
 
