@@ -3,5 +3,6 @@
     "rWheel": 44,
     "turnLeftTime": 3,
     "turnRightTime": 3.6,
-    "convFactor": 0.14
+    "convFactor": 0.14,
+    "countToCM": 65.45
 }

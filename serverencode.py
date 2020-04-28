@@ -55,6 +55,7 @@ lWheel = args['lWheel']
 turnLeftTime = args['turnLeftTime']
 turnRightTime = args['turnRightTime']
 convFactor = args['convFactor']
+countToCM = args['countToCM']
 
 # ---------------------------------------------------------------------------------
 
@@ -133,8 +134,10 @@ def detectField():
     #x = x1_time/convFactor
     #y = y1_time/convFactor
     # convert counts to cm (22cm/)
-    x = x1_count/65.45
-    y = y1_count/65.45
+    x = x1_count/countToCM
+    y = y1_count/countToCM
+
+    print("X: " + str(x) + " "  + "Y: " + str(y))
     
     return "X: " + str(x) + " "  + "Y: " + str(y)
 
