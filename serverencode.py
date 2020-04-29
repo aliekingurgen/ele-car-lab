@@ -414,6 +414,8 @@ def runPath (x, y, w): # arguments passed are encoder counts
     global goingDown
 
     yLength = y
+    goingDown = True
+    obstacles = []
 
     countPlant = int(int(y)*65.45) # CHANGED from timePlant, now total counts
     maxCount = int(x)/int(w) # number of planting lines, can still be in cm
@@ -425,7 +427,6 @@ def runPath (x, y, w): # arguments passed are encoder counts
 
     currentLineCount = 0
     count = 0
-    goingDown = True
     while count <= maxCount:
         forward(countPlant)
         # width is length of romi (15cm*65.45) + a count num
