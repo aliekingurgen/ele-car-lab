@@ -15,12 +15,17 @@ app.debug = True
 path = []
 
 import json
+import random
 
 led0_state = False
 led1_state = False
 led2_state = False
 
 currentLineCount = -1
+obstacles = []
+xLength = 0
+yLength = 0
+width = 0
 
 # Get the configurations 
 parser = argparse.ArgumentParser(description='201_indep_project')
@@ -61,6 +66,7 @@ def running():
 @app.route("/drawfield", methods=['GET'])
 def drawField():
     global currentLineCount
+    global obstacles
 
     xLength = request.args.get("x")
     yLength = request.args.get("y")
@@ -85,6 +91,10 @@ def drawField():
                 html += '<line x1='+str(lineX)+' y1=15 x2='+str(lineX)+' y2=' + str(int(yLength) - 15) + ' stroke="black" stroke-width="4"></line>'
             lineX += int(width)
             lineCount += 1
+        for obstacle in obstacles:
+            obsX = str(int(obstacle[0])*int(width))
+            obsY = str(obstacle[1])
+            html += '<circle cx='+obsX+' cy='+obsY+' r=10 stroke="black" stroke-width=2 fill="red" />'
 
     html += 'Sorry, your browser does not support inline SVG.' + '<\g> ' + '</svg>'
 
@@ -110,7 +120,7 @@ def piControl(error, accError, lr):
 
     return result
 
-def forward(t):
+def forward(t, goingDown):
     '''
     a_star.motors(70, 70)
     leftAcc = 0
@@ -148,7 +158,24 @@ def forward(t):
             countAcc += 1
     stop(1)
     '''
-    time.sleep(t/40)
+    leftCount = random.randint(1500, 10000)
+    distY = int(leftCount/65.45)
+    time.sleep(t/300)
+    avoidObstacle(distY, goingDown)
+    print("finished forward")
+
+def avoidObstacle(distY, goingDown):
+    global currentLineCount
+    global obstacles
+    global yLength
+
+    if not goingDown:
+        distY = int(yLength) - int(distY)
+
+    obstacles.append([currentLineCount, distY])
+    print("Avoiding obstacle")
+    time.sleep(2)
+    print("Finished avoiding obstacle")
 
 def stop(t):
     # a_star.motors(0, 0)
@@ -195,6 +222,10 @@ def turnRight():
 
 def runPath (x, y, w):
     global currentLineCount
+    global yLength
+
+    yLength = y
+
     timePlant = int(y)*convFactor # time for going forward
     maxCount = int(x)/int(w) # number of planting lines
     if maxCount % 10 == 0:
@@ -203,20 +234,20 @@ def runPath (x, y, w):
 
     currentLineCount = 0
     count = 0
+    goingDown = True
     while count <= maxCount:
-        forward(timePlant)
+        forward(timePlant, goingDown)
         if leftOrRight:
             turnRight()
-            forward(1)
             turnRight()
             leftOrRight = False
         else:
             turnLeft()
-            forward(1)
             turnLeft()
             leftOrRight = True
         count += 1
         currentLineCount += 1
+        goingDown = not goingDown
 
     currentLineCount = -1
 

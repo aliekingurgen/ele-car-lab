@@ -27,6 +27,9 @@ led1_state = False
 led2_state = False
 
 currentLineCount = -1
+yLength = 0
+goingDown = True
+obstacles = []
 
 # ---------------------------------------------------------------------------------
 
@@ -113,6 +116,11 @@ def drawField():
                 html += '<line x1='+str(lineX)+' y1=15 x2='+str(lineX)+' y2=' + str(int(yLength) - 15) + ' stroke="black" stroke-width="4"></line>'
             lineX += int(width)
             lineCount += 1
+            
+        for obstacle in obstacles:
+            obsX = str(int(obstacle[0])*int(width))
+            obsY = str(obstacle[1])
+            html += '<circle cx='+obsX+' cy='+obsY+' r=10 stroke="black" stroke-width=2 fill="red" />'
 
     html += 'Sorry, your browser does not support inline SVG.' + '<\g> ' + '</svg>'
 
@@ -219,12 +227,24 @@ def forward(eCount):
                 pixy.set_lamp(1, 1) # turns on lamp if a block is detected
                 pixy.set_lamp(0, 0)
                 print("detected an obstacle")
-                avoidObstacle()
+                avoidObstacle(leftCount)
                 leftCount += int(10*countToCM)
                 rightCount += int(10*countToCM)               
     stop(1)
 
-def avoidObstacle():
+def avoidObstacle(encCount):
+    global currentLineCount
+    global obstacles
+    global yLength
+    global goingDown
+
+    # Calculate the Y position of the obstacle
+    distAlongY = int(encCount/countToCM)
+    if not goingDown:
+        distAlongY = int(yLength) - int(distAlongY)
+    
+    obstacles.append([currentLineCount, distAlongY])
+
     turnRight()
     forwardObstacle(int(5*countToCM))
     turnLeft()
@@ -387,6 +407,11 @@ def turnRight():
 
 def runPath (x, y, w): # arguments passed are encoder counts
     global currentLineCount
+    global yLength
+    global goingDown
+
+    yLength = y
+
     countPlant = int(int(y)*65.45) # CHANGED from timePlant, now total counts
     maxCount = int(x)/int(w) # number of planting lines, can still be in cm
     widthCount = int(int(w)*65.45)
@@ -397,6 +422,7 @@ def runPath (x, y, w): # arguments passed are encoder counts
 
     currentLineCount = 0
     count = 0
+    goingDown = True
     while count <= maxCount:
         forward(countPlant)
         # width is length of romi (15cm*65.45) + a count num
@@ -412,6 +438,8 @@ def runPath (x, y, w): # arguments passed are encoder counts
             leftOrRight = True
         count += 1
         currentLineCount += 1
+        goingDown = not goingDown
+
 
     currentLineCount = -1
 
