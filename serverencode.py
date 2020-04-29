@@ -107,6 +107,8 @@ def drawField():
     if width != 0:
         lineX = 0
         lineCount = 0
+
+        # Display planting lines
         while (lineX <= int(xLength)):
             if lineCount < currentLineCount:
                 html += '<line x1='+str(lineX)+' y1=15 x2='+str(lineX)+' y2=' + str(int(yLength) - 15) + ' stroke="green" stroke-width="4"></line>'
@@ -116,7 +118,8 @@ def drawField():
                 html += '<line x1='+str(lineX)+' y1=15 x2='+str(lineX)+' y2=' + str(int(yLength) - 15) + ' stroke="black" stroke-width="4"></line>'
             lineX += int(width)
             lineCount += 1
-            
+        
+        # Display obstacles (if any)
         for obstacle in obstacles:
             obsX = str(int(obstacle[0])*int(width))
             obsY = str(obstacle[1])
@@ -484,7 +487,6 @@ def hearbeat(state):
     else:
         a_star.leds(not led0_state, not led1_state, not led2_state)
     return ""
-
 
 @app.route("/play_notes/<notes>")
 def play_notes(notes):
