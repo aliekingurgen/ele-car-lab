@@ -176,6 +176,7 @@ def piControl(error, accError, lr):
 
 def forward(eCount):
     a_star.motors(50, 50)
+    blocks = BlockArray(100)
     leftCount = 0 # use left count to determine when to stop
     rightCount = 0
     leftAcc = 0
@@ -224,7 +225,7 @@ def forward(eCount):
         # look at the camera input
         count = pixy.ccc_get_blocks (100, blocks)
         if (count > 0):
-            # make sure block is large enough to be relevant
+        # make sure block is large enough to be relevant
             if (blocks[0].m_width > 50 and blocks[0].m_height > 50):
                 a_star.motors(0, 0) # stops if a block is detected
                 pixy.set_lamp(1, 1) # turns on lamp if a block is detected
