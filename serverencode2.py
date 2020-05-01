@@ -204,6 +204,7 @@ def piControl(error, accError, lr):
 def forward(eCount):
     global distAlongY
     global yLength
+    global distAlongY
 
     blocks = BlockArray(100)
 
@@ -251,26 +252,86 @@ def forward(eCount):
             else:
                 a_star.motors(left, right)
 
+
+            # look at the camera input
+            count = pixy.ccc_get_blocks (100, blocks)
+            if (count > 0):
+                sig = int(blocks[0].m_signature)
+                if (sig == 2):
+                    print(sig)
+            # make sure block is large enough to be relevant and signature is red (1)
+                else:
+                    if (blocks[0].m_width > 50 and blocks[0].m_height > 50):
+                        a_star.motors(0, 0) # stops if a block is detected
+                        encInitL, encInitR = a_star.read_encoders()
+                        print("detected an obstacle")
+                        print(leftCount)
+                        print(blocks[0].m_signature)
+                        avoidObstacle()
+                        encFinL, encFinR = a_star.read_encoders()
+                        leftCount -= (encFinL - encInitL)
+                        rightCount -= (encFinR - encInitR)
+                        print(leftCount)
+                        leftCount += int(10*countToCM)
+                        rightCount += int(10*countToCM)   
+                        print(distAlongY)
             # reset time 2 /encoders
             time2 = time.perf_counter()
             encoders1 = encoders2
             countAcc += 1
+    stop(1)
 
-        # look at the camera input
-        count = pixy.ccc_get_blocks (100, blocks)
-        if (count > 0):
-            sig = int(blocks[0].m_signature)
-            if (sig == 2):
-                print(sig)
-        # make sure block is large enough to be relevant and signature is red (1)
+def forwardOnX(eCount):
+    global distAlongY
+    global yLength
+    global distAlongY
+
+    blocks = BlockArray(100)
+
+    a_star.motors(50, 50)
+    leftCount = 0 # use left count to determine when to stop
+    rightCount = 0
+    leftAcc = 0
+    rightAcc = 0
+    countAcc = 0
+    encoders1 = a_star.read_encoders()
+    time2 = time.perf_counter()
+    while (leftCount < eCount): # left encoder count is less than goal count
+        if ((time.perf_counter() - time2) > 0.05): # look at encoder values every second
+            encoders2 = a_star.read_encoders()
+            # goal: 313 counts/second
+            righten = encoders2[1] - encoders1[1]
+            leften = encoders2[0] - encoders1[0]
+
+            if (righten > 0):
+                rightError = 35 - righten
+                rightCount += righten
+            if (leften > 0):
+                leftError = 35 - leften
+                leftCount += leften
+            #print (str(leftCount) + " " + str(rightCount))
+
+            if (countAcc > 5):
+                leftAcc += leftError
+                rightAcc += rightError
+
+            left = piControl(leftError, leftAcc, 0)
+            right = piControl(rightError, rightAcc, 1)
+            
+            # angle correction and motor control
+            if (leftCount - rightCount > 10):
+                a_star.motors(left, right + 40)
+                print ("adjusting right")
+            if (rightCount - leftCount > 10):
+                a_star.motors(left + 40, right)
+                print ("adjusting left")
             else:
-                if (blocks[0].m_width > 50 and blocks[0].m_height > 50):
-                    a_star.motors(0, 0) # stops if a block is detected
-                    print("detected an obstacle")
-                    print(blocks[0].m_signature)
-                    avoidObstacle(leftCount)
-                    leftCount += int(10*countToCM)
-                    rightCount += int(10*countToCM)               
+                a_star.motors(left, right)
+
+            # reset time 2 /encoders
+            time2 = time.perf_counter()
+            encoders1 = encoders2
+            countAcc += 1            
     stop(1)
 
 def avoidObstacle():
@@ -288,7 +349,8 @@ def avoidObstacle():
     turnLeft()
     forwardObstacle(int(5*countToCM))
     turnRight()
-    stop(1)
+    a_star.motors(50, 50)
+    print("finished avoiding obstacle")
 
 
 def forwardObstacle(eCount):
@@ -441,8 +503,9 @@ def runPath (x, y, w): # arguments passed are encoder counts
     global currentLineCount
     global yLength
     global goingDown
+    global distAlongY
     
-
+    distAlongY = 0
     yLength = y
     goingDown = True
     obstacles = []
@@ -465,20 +528,20 @@ def runPath (x, y, w): # arguments passed are encoder counts
 
     while count <= maxCount:
         forward(countPlant)
+        currentLineCount += 1
+        goingDown = not goingDown
         # width is length of romi (15cm*65.45) + a count num
         if leftOrRight:
             turnRight()
-            forward(widthCount - int(15*65.45))
+            forwardOnX(widthCount - int(15*65.45))
             turnRight()
             leftOrRight = False
         else:
             turnLeft()
-            forward(widthCount - int(15*65.45))
+            forwardOnX(widthCount - int(15*65.45))
             turnLeft()
             leftOrRight = True
         count += 1
-        currentLineCount += 1
-        goingDown = not goingDown
 
     pixy.set_lamp(0, 0)
 
