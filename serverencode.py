@@ -154,8 +154,8 @@ def detectField():
     # convert counts to cm (22cm/)
     #print (x1_count)
     #print (y1_count)
-    x = int(x1_count/countToCM)
-    y = int(y1_count/countToCM)
+    y = int(x1_count/countToCM)
+    x = int(y1_count/countToCM)
 
     print("X: " + str(x) + " "  + "Y: " + str(y))
     
@@ -258,6 +258,7 @@ def avoidObstacle(encCount):
     
     obstacles.append([currentLineCount, distAlongY])
 
+    stop(1)
     turnRight()
     forwardObstacle(int(5*countToCM))
     turnLeft()
@@ -265,6 +266,7 @@ def avoidObstacle(encCount):
     turnLeft()
     forwardObstacle(int(5*countToCM))
     turnRight()
+    stop(1)
 
 def forwardObstacle(eCount):
     a_star.motors(50, 50)
