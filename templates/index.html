@@ -6,26 +6,22 @@
     <link rel="stylesheet" media="all" href="static/main.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+    <link rel="shortcut icon" type="image/jpg" href="static/images/icon2.jpg"/>
 
-    <title>Raspberry Pi Robot Control Panel</title>
+    <title>Agromi Control Panel</title>
   </head>
 
   <body onload="init();">
 
   <div class="container bg-primary">
     <center>
-      <h1>Raspberry Pi Robot Control Panel</h1>
+      <h2>AGROMI CONTROL PANEL</h2>
     </center>
   </div>
 
   <br>
 
-  <div class="container">
-    <center>
-      <a href="/halt" onClick="return shutdown()" class="btn btn-danger" role="button">Shutdown...</a>
-    </center>
-  </div>
-
+<!--
   <br>
 
   <div class="container">
@@ -62,7 +58,7 @@
         </p>
     </center>
   </div>
-
+-->
   <hr>
 
   <div class="container">
@@ -125,9 +121,16 @@
     <center>
       <button onClick="runJob()" class="btn btn-primary" role="button">Run</button>
       <button onClick="stopJob()" class="btn btn-warning" role="button">Stop</button>
+      <a href="/halt" onClick="return shutdown()" class="btn btn-danger" role="button">Shutdown...</a>
     </center>
   </div>
 
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
+  <br>
   <br>
 
   <footer class="footer">
