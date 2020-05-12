@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-# Copyright Pololu Corporation.  For more information, see https://www.pololu.com/
 from flask import Flask, make_response, request
 from flask import render_template
 from flask import redirect
@@ -11,12 +10,14 @@ import argparse
 app = Flask(__name__)
 app.debug = True
 
+# for I2C control board commands
 from a_star import AStar
 a_star = AStar()
 path = []
 
 import json
 
+# for Pixy2 camera
 import pixy 
 from ctypes import *
 from pixy import *
@@ -26,6 +27,7 @@ led0_state = False
 led1_state = False
 led2_state = False
 
+# initial parameters before program runs
 currentLineCount = -1
 yLength = 0
 goingDown = True
@@ -59,7 +61,7 @@ lWheel = args['lWheel']
 turnLeftTime = args['turnLeftTime']
 turnRightTime = args['turnRightTime']
 convFactor = args['convFactor']
-countToCM = args['countToCM']
+countToCM = args['countToCM'] # only configuration used in final version of project
 
 # ---------------------------------------------------------------------------------
 
@@ -155,11 +157,12 @@ def drawField():
 @app.route("/detectfield", methods=['GET'])
 def detectField():
 
-    #initialize camera and block array
+    #initialize camera
     pixy.init()
     pixy.set_lamp(1, 1)
     pixy.change_prog ("color_connected_components")
 
+    # field detection instructions
     x1_count = forwardForDetection()
     turnLeft()
     y1_count = forwardForDetection()
@@ -170,20 +173,14 @@ def detectField():
     turnLeft()
     pixy.set_lamp(0, 0)
 
-    #x = x1_time/convFactor
-    #y = y1_time/convFactor
-    # convert counts to cm (22cm/)
-    #print (x1_count)
-    #print (y1_count)
-    y = int(x1_count/countToCM)
-    x = int(y1_count/countToCM)
-
-    print("X: " + str(x) + " "  + "Y: " + str(y))
+    y = int(x1_count/countToCM) # length in cm
+    x = int(y1_count/countToCM) # width in cm
     
     return str(x) + " " + str(y)
 
 # ---------------------------------------------------------------------------------
 
+# PI speed control
 def piControl(error, accError, lr):
     if (lr == 0):
         kp = 0.9 # proportional constant
@@ -201,6 +198,7 @@ def piControl(error, accError, lr):
 
     return result
 
+# forward method for runPath
 def forward(eCount):
     global distAlongY
     global yLength
@@ -217,12 +215,13 @@ def forward(eCount):
     encoders1 = a_star.read_encoders()
     time2 = time.perf_counter()
     while (leftCount < eCount): # left encoder count is less than goal count
-        if ((time.perf_counter() - time2) > 0.05): # look at encoder values every second
+        if ((time.perf_counter() - time2) > 0.05): # look at encoder values every 0.05 second
+
             encoders2 = a_star.read_encoders()
-            # goal: 313 counts/second
             righten = encoders2[1] - encoders1[1]
             leften = encoders2[0] - encoders1[0]
 
+            # only update if difference is positive (not wraparound case)
             if (righten > 0):
                 rightError = 35 - righten
                 rightCount += righten
@@ -230,15 +229,16 @@ def forward(eCount):
                 leftError = 35 - leften
                 leftCount += leften
                 # Update distAlongY
-                distAlongY = int(leftCount/65.45)
+                distAlongY = int(leftCount/countToCM)
                 if not goingDown:
                     distAlongY = int(yLength) - int(distAlongY)
-            #print (str(leftCount) + " " + str(rightCount))
 
+            # only apply integral control on fifth iteration
             if (countAcc > 5):
                 leftAcc += leftError
                 rightAcc += rightError
 
+            # get motor parameters from PI method
             left = piControl(leftError, leftAcc, 0)
             right = piControl(rightError, rightAcc, 1)
             
@@ -265,22 +265,23 @@ def forward(eCount):
                         a_star.motors(0, 0) # stops if a block is detected
                         encInitL, encInitR = a_star.read_encoders()
                         print("detected an obstacle")
-                        print(leftCount)
                         print(blocks[0].m_signature)
                         avoidObstacle()
                         encFinL, encFinR = a_star.read_encoders()
+
+                        # adjust right and left counts to account for extra distance
                         leftCount -= (encFinL - encInitL)
                         rightCount -= (encFinR - encInitR)
-                        print(leftCount)
-                        leftCount += int(10*countToCM)
-                        rightCount += int(10*countToCM)   
-                        print(distAlongY)
+                        leftCount += int(35*countToCM)
+                        rightCount += int(35*countToCM)
+
             # reset time 2 /encoders
             time2 = time.perf_counter()
             encoders1 = encoders2
             countAcc += 1
     stop(1)
 
+# forward method for x edges (no obstacle detection)
 def forwardOnX(eCount):
     global distAlongY
     global yLength
@@ -298,8 +299,8 @@ def forwardOnX(eCount):
     time2 = time.perf_counter()
     while (leftCount < eCount): # left encoder count is less than goal count
         if ((time.perf_counter() - time2) > 0.05): # look at encoder values every second
+
             encoders2 = a_star.read_encoders()
-            # goal: 313 counts/second
             righten = encoders2[1] - encoders1[1]
             leften = encoders2[0] - encoders1[0]
 
@@ -309,7 +310,6 @@ def forwardOnX(eCount):
             if (leften > 0):
                 leftError = 35 - leften
                 leftCount += leften
-            #print (str(leftCount) + " " + str(rightCount))
 
             if (countAcc > 5):
                 leftAcc += leftError
@@ -334,6 +334,7 @@ def forwardOnX(eCount):
             countAcc += 1            
     stop(1)
 
+# subroutine for avoiding obstacles once detected
 def avoidObstacle():
     global currentLineCount
     global obstacles
@@ -352,7 +353,7 @@ def avoidObstacle():
     a_star.motors(50, 50)
     print("finished avoiding obstacle")
 
-
+# forward method for obstacle detection, stops looking for additional obstacles
 def forwardObstacle(eCount):
     a_star.motors(50, 50)
     leftCount = 0 # use left count to determine when to stop
@@ -363,9 +364,9 @@ def forwardObstacle(eCount):
     encoders1 = a_star.read_encoders()
     time2 = time.perf_counter()
     while (leftCount < eCount): # left encoder count is less than goal count
-        if ((time.perf_counter() - time2) > 0.05): # look at encoder values every second
+        if ((time.perf_counter() - time2) > 0.05): # look at encoder values every 0.05 second
+
             encoders2 = a_star.read_encoders()
-            # goal: 313 counts/second
             righten = encoders2[1] - encoders1[1]
             leften = encoders2[0] - encoders1[0]
 
@@ -399,7 +400,7 @@ def forwardObstacle(eCount):
             countAcc += 1             
     stop(1)
 
-
+# forward method for field detection, looks for green corners
 def forwardForDetection():
     blocks = BlockArray(100)
 
@@ -414,9 +415,9 @@ def forwardForDetection():
     encoders1 = a_star.read_encoders()
     time2 = time.perf_counter()
     while 1:
-        if ((time.perf_counter() - time2) > 0.05): # look at encoder values every second
+        if ((time.perf_counter() - time2) > 0.05): # look at encoder values every 0.05 second
+
             encoders2 = a_star.read_encoders()
-            # goal: 313 counts/second
             righten = encoders2[1] - encoders1[1]
             leften = encoders2[0] - encoders1[0]
 
@@ -464,21 +465,24 @@ def forwardForDetection():
     stop(2)
     return leftCount
 
-
+# stops motors after moving
 def stop(t):
     a_star.motors(0, 0)
     time.sleep(t)
 
+# config file controlled forward
 def forwardOld(t):
     a_star.motors(lWheel, rWheel)
     time.sleep(t)
     stop(1)
 
+# config file controlled backward
 def backward(t):
     a_star.motors(-lWheel, -rWheel)
     time.sleep(t)
     stop(1)
 
+# 90 degree left turn
 def turnLeft():
     rightmotorInitial = a_star.read_encoders()[1]
     a_star.motors(0, 60)
@@ -489,6 +493,7 @@ def turnLeft():
         go = (abs(rightmotor - rightmotorInitial) < 1410)
     stop(1)
 
+# 90 degree right turn
 def turnRight():
     leftmotorInitial = a_star.read_encoders()[0]
     a_star.motors(60, 0)
@@ -499,6 +504,7 @@ def turnRight():
         go = (abs(leftmotor - leftmotorInitial) < 1410)
     stop(1)
 
+# executes a planting path with field parameters
 def runPath (x, y, w): # arguments passed are encoder counts
     global currentLineCount
     global yLength
@@ -510,10 +516,9 @@ def runPath (x, y, w): # arguments passed are encoder counts
     goingDown = True
     obstacles = []
 
-    countPlant = int(int(y)*65.45) # CHANGED from timePlant, now total counts
-    maxCount = int(x)/int(w) # number of planting lines, can still be in cm
-    widthCount = int(int(w)*65.45)
-    # (IF WIDTH < SOME VALUE NEED TO THROW EXCEPTION)
+    countPlant = int(int(y)*countToCM)
+    maxCount = int(x)/int(w)
+    widthCount = int(int(w)*countToCM)
     if maxCount % 10 == 0:
         maxCount += 1
     leftOrRight = False # False: initially turn left, True: initially turn right
@@ -521,7 +526,7 @@ def runPath (x, y, w): # arguments passed are encoder counts
     currentLineCount = 0
     count = 0
 
-    #initialize camera and block array
+    #initialize camera
     pixy.init()
     pixy.set_lamp(1, 1)
     pixy.change_prog ("color_connected_components")
@@ -530,15 +535,15 @@ def runPath (x, y, w): # arguments passed are encoder counts
         forward(countPlant)
         currentLineCount += 1
         goingDown = not goingDown
-        # width is length of romi (15cm*65.45) + a count num
+        # width is length of romi (15cm*countToCM) + a count num
         if leftOrRight:
             turnRight()
-            forwardOnX(widthCount - int(15*65.45))
+            forwardOnX(widthCount - int(15*countToCM))
             turnRight()
             leftOrRight = False
         else:
             turnLeft()
-            forwardOnX(widthCount - int(15*65.45))
+            forwardOnX(widthCount - int(15*countToCM))
             turnLeft()
             leftOrRight = True
         count += 1
@@ -580,7 +585,6 @@ def leds(led0, led1, led2):
     led1_state = led1
     led2_state = led2
     return ""
-
 
 @app.route("/heartbeat/<int:state>")
 def hearbeat(state):
