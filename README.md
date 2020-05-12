@@ -6,4 +6,4 @@
 3. Libpixyusb2 Library: https://github.com/charmedlabs/pixy2
 
 ## To Run:
-`python serverencode.py --config_file romi_config.json`
+`python server.py --config_file romi_config.json`
