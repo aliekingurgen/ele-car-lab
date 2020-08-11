@@ -1,8 +1,8 @@
 # car speed control
 <b>Code:</b> car-speed-control.py <br>
-<b>Report:</b> car-speed-control-report.pdf
-<b>Car:</>
-![car](https://github.com/aliekingurgen/ele-car-lab/blob/master/car.jpgg?raw=true)
+<b>Report:</b> [car-speed-control-report.pdf](./car-speed-control-report.pdf) <br>
+<b>Car:</b>
+<img src="./car.jpeg" width="880" />
 
 
 # romi-agri-robot
