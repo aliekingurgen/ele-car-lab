@@ -1,7 +1,7 @@
 # car speed control
 <b>Code:</b> car-speed-control.py <br>
 <b>Report:</b> [car-speed-control-report.pdf](./car-speed-control-report.pdf) <br>
-<img src="./car.jpeg" width="320" />
+<img src="./static/images/car.jpeg" width="320" />
 
 
 # romi-agri-robot
