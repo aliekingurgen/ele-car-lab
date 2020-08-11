@@ -1,7 +1,7 @@
 # car speed control
 <b>Code:</b> car-speed-control.py <br>
 <b>Report:</b> [car-speed-control-report.pdf](./car-speed-control-report.pdf) <br>
-<img src="./car.jpeg" width="40" />
+<img src="./car.jpeg" width="320" />
 
 
 # romi-agri-robot
@@ -12,3 +12,11 @@
 
 ## To Run:
 `python serverencode2.py --config_file romi_config.json`
+
+## Report:
+[agromi-report.pdf](./agromi-report.pdf) <br>
+
+## Demo:
+<b>Robot Routine:</b> https://youtu.be/xkgxyM7SDjU <br>
+<b>User Interface:</b> https://youtu.be/dYJ0u37XE_E
+
