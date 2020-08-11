@@ -11,7 +11,7 @@
 3. Libpixyusb2 Library: https://github.com/charmedlabs/pixy2
 
 ## To Run:
-`python serverencode2.py --config_file romi_config.json`
+`python main.py --config_file romi_config.json`
 
 ## Report:
 [agromi-report.pdf](./agromi-report.pdf) <br>
